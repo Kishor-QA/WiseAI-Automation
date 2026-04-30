@@ -1,0 +1,48 @@
+# ========================
+# Python related
+# ========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+
+# ========================
+# Virtual environment
+# ========================
+venv/
+env/
+ENV/
+.env/
+
+# ========================
+# VS Code
+# ========================
+.vscode/
+*.code-workspace
+
+# ========================
+# Pytest / Reports
+# ========================
+html_report.html
+report.html
+*.xml
+*.log
+*.tmp
+screenshots/
+Test_Data/*.csv    # optional, only if you don't want test data in Git
+
+# ========================
+# OS Files
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# Others
+# ========================
+.idea/
+*.iml
