@@ -9,6 +9,7 @@ __pycache__/
 *.egg
 *.manifest
 *.spec
+.pytest_cache
 
 # ========================
 # Virtual environment
@@ -18,9 +19,6 @@ env/
 ENV/
 .env/
 
-# ========================
-# VS Code
-# ========================
 .vscode/
 *.code-workspace
 

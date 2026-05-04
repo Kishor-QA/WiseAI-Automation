@@ -59,3 +59,26 @@ class ReadAloudCofing:
             return locator_type, parts[1].strip()
         elif locator_type == "text":
             return locator_type, parts[1].strip()
+
+class UserManagamentConfig:
+
+    @staticmethod
+    def get_page_url(key="Page_URL"):
+        return config.get("User Management", key)
+
+    @staticmethod
+    def get_locator(name):
+        locator = config.get("User Management", name)
+        parts = locator.split(',')
+
+        locator_type = parts[0].strip()
+
+        if locator_type == "role":
+            if len(parts) == 3:
+                return locator_type, parts[1].strip(), parts[2].strip()
+            elif len(parts) == 2:
+                return locator_type, parts[1].strip()
+        elif locator_type == "link":
+            return locator_type, parts[1].strip()
+        elif locator_type == "text":
+            return locator_type, parts[1].strip()
