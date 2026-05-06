@@ -32,10 +32,17 @@ def browser(request):
 # PAGE SETUP
 # -----------------------------
 @pytest.fixture(scope="function")
-def page(browser, request):
+def context(browser):
+    context = browser.new_context()
+    yield context
+    context.close()
+
+
+@pytest.fixture(scope="function")
+def page(context, request):
     url = request.config.getoption("--url")
 
-    page = browser.new_page()
+    page = context.new_page()   # ✅ FIXED
 
     if url:
         page.goto(url)
@@ -44,7 +51,6 @@ def page(browser, request):
 
     yield page
     page.close()
-
 
 # -----------------------------
 # TEST DATA

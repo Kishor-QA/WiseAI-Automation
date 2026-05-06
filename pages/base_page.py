@@ -24,9 +24,13 @@ class BasePage:
 
         elif locator[0] == "css":
             return self.page.locator(locator[1])
+        
+        elif locator[0] == "locator":
+            return self.page.locator(locator[1])
 
         elif locator[0] == "text":
             return self.page.get_by_text(locator[1], exact=False)
+        
 
     def click(self, locator):
         self.get_locator(locator).click()
@@ -38,10 +42,16 @@ class BasePage:
         return self.get_locator(locator).is_visible()
 
     def verify_text_visible(self, locator):
-        expect(self.get_locator(locator)).to_be_visible()
+        expect(self.get_locator(locator)).to_be_visible(timeout=50000)
+    
+    def get_frame(self, locator):
+        locator_type, locator_value = locator
 
-    # -------------------------
-    # TOKEN HANDLING (NEW)
+        if locator_type != "css":
+            raise ValueError("Iframe locator must be CSS type")
+
+        return self.page.frame_locator(locator_value)
+# TOKEN HANDLING (NEW)
     # -------------------------
     def init_token(self):
         """
