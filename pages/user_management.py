@@ -33,7 +33,7 @@ class UserManagement(BasePage):
         self.click(self.Navigate_User_Management)
         print("I am here")
 
-    def create_new_user(self, first_name,middle_name, last_name, email, domain, roles):
+    def create_new_user(self, first_name,middle_name, last_name, email):
         print("<>/create button")
         self.click(self.Create_New_User)
         print("<>/create button")

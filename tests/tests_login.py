@@ -1,5 +1,4 @@
 import pytest
-import allure
 import csv
 from pages.login_page import LoginPage
 from pages.home_page import Home

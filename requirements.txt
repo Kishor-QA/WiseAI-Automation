@@ -1,5 +1,6 @@
 playwright
 pytest
 pytest-xdist
-allure-pytest
+pytest-html
 pandas
+requests

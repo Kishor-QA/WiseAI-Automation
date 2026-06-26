@@ -31,6 +31,11 @@ class BasePage:
         elif locator[0] == "text":
             return self.page.get_by_text(locator[1], exact=False)
         
+        elif locator[0] == "placeholder":
+            return self.page.get_by_placeholder(locator[1])
+        
+        elif locator[0] == "role_nth":
+            return self.page.get_by_role(locator[1]).nth(int(locator[2]))
 
     def click(self, locator):
         self.get_locator(locator).click()

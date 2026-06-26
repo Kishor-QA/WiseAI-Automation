@@ -14,10 +14,13 @@ __pycache__/
 # ========================
 # Virtual environment
 # ========================
+.venv/
 venv/
 env/
 ENV/
-.env/
+
+# Environment files
+.env
 
 .vscode/
 *.code-workspace
@@ -30,8 +33,12 @@ report.html
 *.xml
 *.log
 *.tmp
+reports/
 screenshots/
-Test_Data/*.csv    # optional, only if you don't want test data in Git
+logs/
+
+# Generated data
+test_data/Query.xlsx
 
 # ========================
 # OS Files

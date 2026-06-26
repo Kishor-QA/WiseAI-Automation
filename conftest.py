@@ -5,11 +5,13 @@ from utilities.read_properties import ReadConfig
 from pages.login_page import LoginPage
 from pages.home_page import Home
 from pages.read_aloud import ReadAloud
+import os
 
 
 # -----------------------------
 # CLI OPTIONS
 # -----------------------------
+
 def pytest_addoption(parser):
     parser.addoption("--browser", action="store", default="chromium")
     parser.addoption("--url", action="store", default=None)
@@ -21,9 +23,14 @@ def pytest_addoption(parser):
 @pytest.fixture(scope="session")
 def browser(request):
     browser_name = request.config.getoption("--browser")
+    headless = os.getenv("HEADLESS", "true").lower() not in ("0", "false", "no")
+    launch_args = ["--disable-gpu", "--disable-dev-shm-usage", "--no-sandbox"]
+    if not headless:
+        launch_args.append("--start-maximized")
 
     with sync_playwright() as p:
-        browser = getattr(p, browser_name).launch(headless=False)
+        browser_type = getattr(p, browser_name)
+        browser = browser_type.launch(headless=headless, args=launch_args)
         yield browser
         browser.close()
 
@@ -33,7 +40,8 @@ def browser(request):
 # -----------------------------
 @pytest.fixture(scope="function")
 def context(browser):
-    context = browser.new_context()
+    # Use viewport=None so the browser opens at the native maximized window size
+    context = browser.new_context(viewport=None)
     yield context
     context.close()
 

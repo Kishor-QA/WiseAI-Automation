@@ -113,3 +113,7 @@ class ChatbotConfig:
             return locator_type, parts[1].strip()
         elif locator_type == "css":
             return locator_type, parts[1].strip()
+        elif locator_type == "placeholder":
+            return locator_type, parts[1].strip()
+        elif locator_type == "role_nth":
+            return locator_type, parts[1].strip(), parts[2].strip()

@@ -6,7 +6,7 @@ def run(playwright: Playwright) -> None:
     browser = playwright.chromium.launch(headless=False)
     context = browser.new_context()
     page = context.new_page()
-    page.goto("https://dev.wiseai.wiseyak.com/login")
+    page.goto("https://stage.wiseai.wiseyak.com/login")
     page.get_by_role("textbox", name="Enter your username").click()
     page.get_by_role("textbox", name="Enter your username").fill("org@test.com")
     page.get_by_role("textbox", name="Enter your password").click()

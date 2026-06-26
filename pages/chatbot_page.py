@@ -9,6 +9,7 @@ class Chatbot(BasePage):
     Type_Query = ChatbotConfig.get_locator("Type_Query")
     Send_Button = ChatbotConfig.get_locator("Send_Button")
     Response_Message = ChatbotConfig.get_locator("Response_Message")
+    Language_Dropdown = ChatbotConfig.get_locator("Language_Dropdown")
 
     def navigate_chatbot(self):
         self.click(self.Navigate_Chatbot)
@@ -16,7 +17,12 @@ class Chatbot(BasePage):
     def type_query(self, query):
         input_box = self.get_locator(self.Type_Query)
         input_box.fill(query)
-        input_box.press("Enter")
+
+    def select_language(self, language):
+        dropdown = self.get_locator(self.Language_Dropdown)
+        dropdown.click()
+        dropdown.fill(language)  
+        dropdown.press("Enter")
 
     def get_response_message(self, timeout=30000):
         element = self.get_locator(self.Response_Message).last
