@@ -1,20 +1,42 @@
+import os
 import pytest
 import pandas as pd
+from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 from utilities.read_properties import ReadConfig
 from pages.login_page import LoginPage
 from pages.home_page import Home
 from pages.read_aloud import ReadAloud
-import os
+
+load_dotenv()
 
 
 # -----------------------------
 # CLI OPTIONS
 # -----------------------------
+# -----------------------------
 
 def pytest_addoption(parser):
     parser.addoption("--browser", action="store", default="chromium")
     parser.addoption("--url", action="store", default=None)
+
+
+def get_target_url(request):
+    cli_url = request.config.getoption("--url")
+    if cli_url:
+        return cli_url
+
+    env_name = os.getenv("ENV", "stage").strip().lower()
+    url_key_map = {
+        "dev": "DEV_URL",
+        "stage": "STAGE_URL",
+        "prod": "PROD_URL",
+    }
+    env_url = os.getenv(url_key_map.get(env_name, "")) or os.getenv("URL")
+    if env_url:
+        return env_url
+
+    return ReadConfig.get_page_url()
 
 
 # -----------------------------
@@ -48,14 +70,10 @@ def context(browser):
 
 @pytest.fixture(scope="function")
 def page(context, request):
-    url = request.config.getoption("--url")
+    url = get_target_url(request)
 
-    page = context.new_page()   # ✅ FIXED
-
-    if url:
-        page.goto(url)
-    else:
-        page.goto(ReadConfig.get_page_url())
+    page = context.new_page()
+    page.goto(url)
 
     yield page
     page.close()

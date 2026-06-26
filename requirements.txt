@@ -4,3 +4,4 @@ pytest-xdist
 pytest-html
 pandas
 requests
+python-dotenv

@@ -4,10 +4,14 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Environment variables for Python
+# Environment variables for Python and test configuration
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    HEADLESS=true
+    HEADLESS=true \
+    ENV=stage \
+    DEV_URL=https://dev.wiseai.wiseyak.com/login \
+    STAGE_URL=https://stage.wiseai.wiseyak.com/login \
+    PROD_URL=https://prod.wiseai.wiseyak.com/login
 
 # Install system dependencies required by Playwright browsers
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -42,4 +46,4 @@ RUN python -m playwright install --with-deps
 COPY . .
 
 # Default command to run tests; can be overridden at runtime
-CMD ["pytest", "-v", "--tb=short", "--alluredir=reports/allure-results"]
+CMD ["pytest", "tests", "-v", "--tb=short", "--alluredir=reports/allure-results"]

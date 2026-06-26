@@ -6,10 +6,17 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
+      # Browser execution mode: true (headless) or false (headed)
       - HEADLESS=true
+      # Target environment: dev, stage, prod
+      - ENV=stage
+      # Environment-specific URLs
+      - DEV_URL=https://dev.wiseai.wiseyak.com/login
+      - STAGE_URL=https://stage.wiseai.wiseyak.com/login
+      - PROD_URL=https://prod.wiseai.wiseyak.com/login
     volumes:
       - .:/app
     working_dir: /app
-    command: pytest -v --tb=short
+    command: pytest tests -v --tb=short
     tty: true
     stdin_open: true
