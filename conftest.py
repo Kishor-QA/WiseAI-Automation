@@ -1,3 +1,4 @@
+import datetime
 import os
 import pytest
 import pandas as pd
@@ -155,3 +156,20 @@ def pytest_runtest_makereport(item, call):
         page = item.funcargs.get("page", None)
         if page:
             page.screenshot(path=f"screenshots/{item.name}.png")
+
+# -----------------------------
+# TIMELINED HTML REPORTS
+# -----------------------------
+def pytest_configure(config):
+    htmlpath = getattr(config.option, "htmlpath", None)
+    if htmlpath and os.path.basename(htmlpath) == "report.html":
+        folder = os.path.dirname(htmlpath) or "reports"
+        os.makedirs(folder, exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        config.option.htmlpath = os.path.join(folder, f"report_{timestamp}.html")
+
+
+def pytest_report_header(config):
+    htmlpath = getattr(config.option, "htmlpath", None)
+    if htmlpath:
+        return f"HTML report will be saved to: {htmlpath}"

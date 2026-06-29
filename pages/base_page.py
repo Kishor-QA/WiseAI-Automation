@@ -13,7 +13,14 @@ class BasePage:
     # -------------------------
     # LOCATORS (UNCHANGED)
     # -------------------------
-    def get_locator(self, locator):
+    def get_locator(self, locator, value=None):
+
+        if value is not None:
+            locator = list(locator)
+
+            # Replace placeholder with actual value
+            locator = [value if item == "{value}" else item for item in locator]
+
         if locator[0] == "role":
             if len(locator) == 3:
                 return self.page.get_by_role(locator[1], name=locator[2])
@@ -24,16 +31,16 @@ class BasePage:
 
         elif locator[0] == "css":
             return self.page.locator(locator[1])
-        
+
         elif locator[0] == "locator":
             return self.page.locator(locator[1])
 
         elif locator[0] == "text":
             return self.page.get_by_text(locator[1], exact=False)
-        
+
         elif locator[0] == "placeholder":
             return self.page.get_by_placeholder(locator[1])
-        
+
         elif locator[0] == "role_nth":
             return self.page.get_by_role(locator[1]).nth(int(locator[2]))
 

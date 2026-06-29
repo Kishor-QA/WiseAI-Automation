@@ -1,6 +1,9 @@
 from pages.user_management import UserManagement
 from pages.home_page import Home
 import pytest
+from utilities.custom_logger import Log_Maker
+
+logger = Log_Maker.log_gen()
 
 @pytest.fixture(scope="function")
 def user_login(dashboard):
@@ -22,12 +25,14 @@ def test_create_user(user_login):
     # # assert user_m.already_exist_message() is True
     # assert user_m.successful_message() is True
 
-    email_page =user_m.open_new_tab("https://yopmail.com/en/")
-    print ("Went to Yopmail")
+    email_page = user_m.open_new_tab("https://yopmail.com/en/")
+    logger.info("Opened Yopmail in new tab")
     user_m.page = email_page
     user_m.verify_email("john.doe5@yopmail.com")
+    logger.info("Verified email address on Yopmail")
 
-    print("we went to this")
+    logger.info("Clicking redirect link")
     user_m.click_redirect_link()
-    print("Click Redirect Link")
+    logger.info("Clicked redirect link")
     user_m.password_change("Password1@", "Password1@")
+    logger.info("Completed password change flow")

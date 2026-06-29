@@ -11,7 +11,7 @@ class Log_Maker:
             logs_dir = os.path.join(os.getcwd(), "logs")
             os.makedirs(logs_dir, exist_ok=True)
 
-            file_handler = logging.FileHandler(os.path.join(logs_dir, "  wiseyak.log"), mode='a')
+            file_handler = logging.FileHandler(os.path.join(logs_dir, "wiseyak.log"), mode='a')
             formatter = logging.Formatter(
                 '%(asctime)s - %(levelname)s - %(name)s - %(message)s',
                 datefmt='%Y-%m-%d %H:%M:%S'

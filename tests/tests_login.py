@@ -2,6 +2,9 @@ import pytest
 import csv
 from pages.login_page import LoginPage
 from pages.home_page import Home
+from utilities.custom_logger import Log_Maker
+
+logger = Log_Maker.log_gen()
 
 
 def load_test_data():
@@ -12,9 +15,11 @@ def load_test_data():
 
 @pytest.mark.parametrize("data", load_test_data())
 def test_login(page, data):
+    logger.info(f"Starting login test: case_type={data['case_type']} username={data['username']}")
     login = LoginPage(page)
 
     login.login(data["username"], data["password"])
+    logger.info("Submitted login form")
     # page.screenshot(path=f"screenshots/screenshot_{data['case_type']}.png")
     if data["case_type"] == "valid":
         home = Home(page)
@@ -37,6 +42,10 @@ def test_login(page, data):
 
     if data["case_type"] == "password_invalid":
         assert login.is_invalid_login_error_visible()
+        logger.info("Invalid password login error displayed")
 
     if data["case_type"] == "both_invalid":
         assert login.is_invalid_login_error_visible()
+        logger.info("Both credentials invalid login error displayed")
+
+    logger.info(f"Completed login test: case_type={data['case_type']}")
