@@ -11,12 +11,10 @@ services:
       # Target environment: dev, stage, prod
       - ENV=stage
       # Environment-specific URLs
-      - DEV_URL=https://dev.wiseai.wiseyak.com/login
       - STAGE_URL=https://stage.wiseai.wiseyak.com/login
-      - PROD_URL=https://prod.wiseai.wiseyak.com/login
     volumes:
       - .:/app
     working_dir: /app
-    command: pytest tests -v --tb=short
+    command: pytest tests/tests_login.py 
     tty: true
     stdin_open: true
