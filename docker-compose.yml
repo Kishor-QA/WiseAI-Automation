@@ -13,8 +13,8 @@ services:
       # Environment-specific URLs
       - STAGE_URL=https://stage.wiseai.wiseyak.com/login
     volumes:
-      - .:/app
+      - ./reports:/app/reports
     working_dir: /app
-    command: pytest tests/tests_login.py 
+    command: pytest tests/tests_login.py
     tty: true
     stdin_open: true
