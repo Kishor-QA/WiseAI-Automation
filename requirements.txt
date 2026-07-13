@@ -5,3 +5,4 @@ pytest-html
 pandas
 requests
 python-dotenv
+openpyxl
