@@ -1,9 +1,0 @@
-case_type,username,password
-valid,org@test.com,Password1@
-invalid,wrong@test.com,wrongpass
-empty,,
-username_empty,,Password1@
-password_empty,org@test.com,
-username_invalid,invalid@test.com,Password1@
-password_invalid,org@test.com,wrongpass
-both_invalid,wrong@test.com,wrongpass

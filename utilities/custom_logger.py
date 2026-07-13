@@ -1,17 +1,23 @@
 import logging
 import os
 
+
 class Log_Maker:
     @staticmethod
     def log_gen():
         logger = logging.getLogger("Wiseyak")
         logger.setLevel(logging.INFO)
+        logger.propagate = False
 
         if not logger.handlers:
             logs_dir = os.path.join(os.getcwd(), "logs")
             os.makedirs(logs_dir, exist_ok=True)
 
-            file_handler = logging.FileHandler(os.path.join(logs_dir, "wiseyak.log"), mode='a')
+            file_handler = logging.FileHandler(
+                os.path.join(logs_dir, "wiseyak.log"),
+                mode='a',
+                encoding='utf-8'
+            )
             formatter = logging.Formatter(
                 '%(asctime)s - %(levelname)s - %(name)s - %(message)s',
                 datefmt='%Y-%m-%d %H:%M:%S'

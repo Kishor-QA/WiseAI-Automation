@@ -6,14 +6,25 @@ from utilities.custom_logger import Log_Maker
 
 logger = Log_Maker.log_gen()
 
+pytestmark = pytest.mark.ui
+
 
 def load_test_data():
-    with open('test_data/test_login.csv') as f:
+    with open('test_data/login_info.csv') as f:
         reader = csv.DictReader(f)
         return [row for row in reader]
 
 
-@pytest.mark.parametrize("data", load_test_data())
+def load_login_params():
+    """Valid login is business-critical (smoke); all other cases are regression."""
+    params = []
+    for row in load_test_data():
+        suite_mark = pytest.mark.smoke if row["case_type"] == "valid" else pytest.mark.regression
+        params.append(pytest.param(row, marks=suite_mark, id=row["case_type"]))
+    return params
+
+
+@pytest.mark.parametrize("data", load_login_params())
 def test_login(page, data):
     logger.info(f"Starting login test: case_type={data['case_type']} username={data['username']}")
     login = LoginPage(page)

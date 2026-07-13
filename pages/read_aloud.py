@@ -20,16 +20,16 @@ class ReadAloud(BasePage):
     def navigate_to_readalout(self):
         self.click(self.Navigate_to_ReadAloud)
 
+    def select_language(self, language):
+        dropdown = self.get_locator(self.Language_Dropdown)
+        dropdown.click()
+
+        option = self.get_locator(self.Select_Language, language)
+        option.click()
+    
     def input_text(self, input_text):
-        print("<<<<<moved to audio>>>>>")
-        self.click(self.Language_Dropdown)
-        print("<<<<<<<Passed Language Dropdown>>>>>>>")
-        self.click(self.Select_Language)
-        print("<<<<<Passed Select Language>>>>>")
         self.click(self.Click_Input_Box)
-        print("<<<<Input Clicked>>>>")
         self.fill(self.Input_Text, input_text)
-        print(f"inputed text is {input_text}")
 
     def generate_tts_and_get_job(self):
         locator = self.get_locator(self.Generate_Audio_Button)

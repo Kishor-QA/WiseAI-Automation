@@ -24,10 +24,15 @@ class Chatbot(BasePage):
         dropdown = self.get_locator(self.Language_Dropdown)
         dropdown.click()
 
-        option = self.get_locator(self.Select_Language, language)
+        option = self.get_locator(self.Select_Language, language).nth(2)
         option.click()
     
-    def get_response_message(self, timeout=50000):
-        element = self.get_locator(self.Response_Message).last
+    def count_responses(self):
+        return self.get_locator(self.Response_Message).count()
+
+    def get_response_message(self, previous_count=0, timeout=100000):
+        responses = self.get_locator(self.Response_Message)
+        expect(responses).not_to_have_count(previous_count, timeout=timeout)
+        element = responses.last
         expect(element).to_be_visible(timeout=timeout)
-        return element.text_content().strip()
+        return self.wait_for_stable_text(element)

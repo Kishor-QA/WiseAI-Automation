@@ -16,7 +16,7 @@ class UserManagement(BasePage):
     Role_Button=UserManagamentConfig.get_locator("Role_Button")
     Select_Roles =UserManagamentConfig.get_locator("Select_Roles")
     Create_User=UserManagamentConfig.get_locator("Create_User")
-    Yopmail_URL =UserManagamentConfig.get_locator("Yopmail_URL")
+    Yopmail_URL =UserManagamentConfig.get_page_url("Yopmail_URL")
     Email_Box =UserManagamentConfig.get_locator("Email_Box")
     Successful_Message= UserManagamentConfig.get_locator("Successful_Message")
     Already_Exists_Message = UserManagamentConfig.get_locator("Already_Exist_Message")
@@ -29,25 +29,16 @@ class UserManagement(BasePage):
     Confirm_Password=UserManagamentConfig.get_locator("Confirm_Password")
 
     def navigate_to_user_management(self):
-        print("I am here")
         self.click(self.Navigate_User_Management)
-        print("I am here")
 
     def create_new_user(self, first_name,middle_name, last_name, email):
-        print("<>/create button")
         self.click(self.Create_New_User)
-        print("<>/create button")
         self.fill(self.First_Name, first_name)
-        print("<>/create button")
         self.fill(self.Last_Name, last_name)
         self.fill(self.Middle_Name, middle_name)
-        print("<>/create button")
         self.fill(self.Email, email)
-        self.click(self.Domain_Dropdown)
-        self.click(self.Select_Domain)  # Click the option instead of filling it
-        self.click(self.Role_Button)
-        print("<<<<<<<<<Roles >>>>>>>>>")
-        self.click(self.Select_Roles)  # Click the role button instead of filling it
+        # Domain is fixed (@aloi.com) and a default USER role is pre-assigned
+        # on the current UI, so no dropdown interaction is needed
         self.click(self.Create_User)
     
     def successful_message(self):
@@ -66,11 +57,25 @@ class UserManagement(BasePage):
     
     def verify_email(self, email):
         locator = self.get_locator(self.Email_Box)
-        print("Visible:", locator.is_visible())
-        print("Enabled:", locator.is_enabled())
         locator.fill(email)
         locator.press("Enter")
         self.page.wait_for_selector(self.Inbox_Frame[1], timeout=20000)
+
+    def wait_for_verification_email(self, retries=6):
+        """
+        Yopmail delivery can lag behind user creation, so reload the inbox
+        until the verification email appears.
+        """
+        for attempt in range(retries):
+            inbox_frame = self.get_frame(self.Inbox_Frame)
+            email_item = inbox_frame.get_by_role(self.Email_Item[1], name=self.Email_Item[2]).first
+            try:
+                expect(email_item).to_be_visible(timeout=10000)
+                return
+            except AssertionError:
+                self.page.reload()
+                self.page.wait_for_selector(self.Inbox_Frame[1], timeout=20000)
+        raise AssertionError(f"Verification email not received after {retries} inbox checks")
 
     def click_redirect_link(self):
         inbox_frame = self.get_frame(self.Inbox_Frame)

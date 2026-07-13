@@ -1,2 +1,9 @@
 case_type,username,password
-valid,admin@infodevelopers.com,Password1@
+valid,admin@aloi.com,Password1@
+invalid,wrong@test.com,wrongpass
+empty,,
+username_empty,,Password1@
+password_empty,admin@aloi.com,
+username_invalid,invalid@test.com,Password1@
+password_invalid,admin@aloi.com,wrongpass
+both_invalid,wrong@test.com,wrongpass

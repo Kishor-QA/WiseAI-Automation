@@ -110,6 +110,9 @@ def dashboard(page, get_valid_credentials):
     login.login(username, password)
 
     home = Home(page)
+    # Wait for the dashboard before reading the token from browser storage,
+    # otherwise the app may not have stored it yet
+    assert home.is_dashboard_loaded()
 
     # 🔥 Extract token from browser storage
     try:

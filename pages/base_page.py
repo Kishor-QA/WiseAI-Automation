@@ -56,6 +56,27 @@ class BasePage:
     def verify_text_visible(self, locator):
         expect(self.get_locator(locator)).to_be_visible(timeout=50000)
     
+    def wait_for_stable_text(self, element, stable_checks=3, poll_interval_ms=1000, timeout_ms=60000):
+        """
+        Wait until an element's text stops changing (needed for streamed/typed-out
+        responses where visibility alone does not mean the text is complete).
+        """
+        previous_text = None
+        stable = 0
+        elapsed = 0
+        while elapsed <= timeout_ms:
+            current = (element.text_content() or "").strip()
+            if current and current == previous_text:
+                stable += 1
+                if stable >= stable_checks:
+                    return current
+            else:
+                stable = 0
+            previous_text = current
+            self.page.wait_for_timeout(poll_interval_ms)
+            elapsed += poll_interval_ms
+        return previous_text or ""
+
     def get_frame(self, locator):
         locator_type, locator_value = locator
 
@@ -106,13 +127,15 @@ class BasePage:
         return {cookie['name']: cookie['value'] for cookie in cookies}
 
     # -------------------------
-    # API: TTS POLLING (FIXED)
+    # API: AUTHENTICATED GET
     # -------------------------
-    def poll_tts_result(self, job_id, timeout=120):
-        assert self.base_url, "base_url must be configured to poll TTS results"
+    def api_get(self, path, timeout=10):
+        """
+        Authenticated GET against base_url, reusing the UI session's token and cookies.
+        """
+        assert self.base_url, "base_url must be configured for API calls"
 
-        base = self.base_url.rstrip("/")
-        url = f"{base}/audio/tts_results/{job_id}"
+        url = f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
 
         headers = {
             "Content-Type": "application/json"
@@ -120,13 +143,17 @@ class BasePage:
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
 
-        cookies = self._get_auth_cookies()
+        return requests.get(url, headers=headers, cookies=self._get_auth_cookies(), timeout=timeout)
 
+    # -------------------------
+    # API: TTS POLLING (FIXED)
+    # -------------------------
+    def poll_tts_result(self, job_id, timeout=120):
         last_status = None
         last_body = None
 
         for _ in range(timeout // 2):
-            res = requests.get(url, headers=headers, cookies=cookies)
+            res = self.api_get(f"audio/tts_results/{job_id}")
             last_status = res.status_code
             last_body = res.text
 
