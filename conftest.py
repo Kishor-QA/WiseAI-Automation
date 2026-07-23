@@ -8,6 +8,7 @@ from utilities.read_properties import ReadConfig
 from pages.login_page import LoginPage
 from pages.home_page import Home
 from pages.read_aloud import ReadAloud
+from pages.stt_nepali_review import STTNepaliReview
 
 load_dotenv()
 
@@ -63,8 +64,10 @@ def browser(request):
 # -----------------------------
 @pytest.fixture(scope="function")
 def context(browser):
-    # Use viewport=None so the browser opens at the native maximized window size
-    context = browser.new_context(viewport=None)
+    # no_viewport=True makes the page use the real window size, so a
+    # maximized window is actually full screen (viewport=None only
+    # keeps Playwright's 1280x720 default)
+    context = browser.new_context(no_viewport=True)
     yield context
     context.close()
 
@@ -95,16 +98,30 @@ def get_valid_credentials(file_path="./test_data/login_info.csv"):
     return valid_row['username'], valid_row['password']
 
 
+@pytest.fixture(scope="session")
+def get_user_credentials():
+    """System-login credentials shared by every page fixture.
+    login_info.csv stays reserved for the login test cases themselves;
+    this file holds the accounts used to get into the app, one per role."""
+    df = pd.read_csv("./test_data/user_credentials.csv")
+
+    def _by_role(role):
+        row = df[df["role"] == role].iloc[0]
+        return row["username"], row["password"]
+
+    return _by_role
+
+
 # -----------------------------
 # DASHBOARD (UI LOGIN + TOKEN)
 # -----------------------------
 @pytest.fixture(scope="function")
-def dashboard(page, get_valid_credentials):
+def dashboard(page, get_user_credentials):
     """
     Logs in via UI and returns Home page object
     Also extracts access token for API usage
     """
-    username, password = get_valid_credentials
+    username, password = get_user_credentials("admin")
 
     login = LoginPage(page)
     login.login(username, password)
@@ -132,6 +149,17 @@ def read_aloud(dashboard):
     read_aloud_page = ReadAloud(dashboard.page)
     read_aloud_page.token = dashboard.token
     return read_aloud_page
+
+
+@pytest.fixture(scope="function")
+def stt_review(page, get_user_credentials):
+    """The review queue belongs to the reviewer role, not the admin."""
+    username, password = get_user_credentials("reviewer")
+
+    login = LoginPage(page)
+    login.login(username, password)
+
+    return STTNepaliReview(page)
 
 
 # -----------------------------
@@ -176,3 +204,22 @@ def pytest_report_header(config):
     htmlpath = getattr(config.option, "htmlpath", None)
     if htmlpath:
         return f"HTML report will be saved to: {htmlpath}"
+
+
+# -----------------------------
+# "TASKS PROCESSED" COLUMN
+# -----------------------------
+# Loop-style tests (e.g. approve-all-pending) run many business actions
+# inside a single pytest test, so the pass/fail row alone hides how much
+# work actually happened. Tests report their count via
+# record_property("tasks_processed", n) and it renders as its own column.
+def pytest_html_results_table_header(cells):
+    cells.insert(2, "<th>Tasks Processed</th>")
+
+
+def pytest_html_results_table_row(report, cells):
+    tasks_processed = next(
+        (value for name, value in getattr(report, "user_properties", []) if name == "tasks_processed"),
+        "",
+    )
+    cells.insert(2, f"<td>{tasks_processed}</td>")

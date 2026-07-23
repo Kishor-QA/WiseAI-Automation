@@ -44,8 +44,16 @@ class BasePage:
         elif locator[0] == "role_nth":
             return self.page.get_by_role(locator[1]).nth(int(locator[2]))
 
+        elif locator[0] == "role_exact":
+            return self.page.get_by_role(locator[1], name=locator[2], exact=True)
+
     def click(self, locator):
         self.get_locator(locator).click()
+
+    def pause(self, seconds: float = 1.5):
+        """Deliberate short delay between UI steps where the app needs
+        breathing room (uses Playwright's clock, works headless too)."""
+        self.page.wait_for_timeout(int(seconds * 1000))
 
     def fill(self, locator, text):
         self.get_locator(locator).fill(text)
@@ -56,17 +64,26 @@ class BasePage:
     def verify_text_visible(self, locator):
         expect(self.get_locator(locator)).to_be_visible(timeout=50000)
     
+    # Text shown by chatbot-style UIs while a response is still being generated
+    # (the real string is "Thinking …" - a Unicode ellipsis, not "...");
+    # matched with startswith so trailing punctuation/whitespace can't slip through.
+    LOADING_TEXT_PREFIXES = ("thinking",)
+
     def wait_for_stable_text(self, element, stable_checks=3, poll_interval_ms=1000, timeout_ms=60000):
         """
         Wait until an element's text stops changing (needed for streamed/typed-out
         responses where visibility alone does not mean the text is complete).
+        Placeholder/loading text (e.g. "Thinking …") is never treated as stable.
         """
         previous_text = None
         stable = 0
         elapsed = 0
         while elapsed <= timeout_ms:
             current = (element.text_content() or "").strip()
-            if current and current == previous_text:
+            is_loading = current and current.lower().startswith(self.LOADING_TEXT_PREFIXES)
+            if is_loading:
+                stable = 0
+            elif current and current == previous_text:
                 stable += 1
                 if stable >= stable_checks:
                     return current
