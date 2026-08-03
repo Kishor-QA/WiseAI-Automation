@@ -10,7 +10,7 @@ pytestmark = pytest.mark.ui
 
 # Just enough queries to confirm the chatbot is responding at all;
 # full expected-vs-actual coverage lives in test_chatbot_accuracy.py
-SMOKE_QUERY_COUNT = 24
+SMOKE_QUERY_COUNT = 5
 
 
 @pytest.mark.smoke
@@ -21,15 +21,17 @@ def test_chatbot_responds(user_login):
     chatbot_user.navigate_chatbot()
     logger.info("Navigated to chatbot page")
 
-    df = pd.read_excel("test_data/Query.xlsx", dtype=str).fillna("")
-    query_list = df["Queries"].tolist()[:SMOKE_QUERY_COUNT]
+    df = pd.read_excel("test_data/queries2.xlsx", dtype=str).fillna("")
+    df = df.head(SMOKE_QUERY_COUNT)
 
     os.makedirs("reports", exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     results_file = f"reports/chatbot_smoke_{timestamp}.xlsx"
 
     results = []
-    for idx, query in enumerate(query_list):
+    for idx, row in df.iterrows():
+        query = row["Queries"]
+        expected_answer = row["expected_answer"]
         logger.info(f"Processing Query #{idx + 1}: {query}")
 
         previous_count = chatbot_user.count_responses()
@@ -43,6 +45,7 @@ def test_chatbot_responds(user_login):
         results.append({
             "Query": query,
             "Response": response_text,
+            "Expected_Answer": expected_answer
         })
 
         # Save after every query so a crash still leaves a usable report

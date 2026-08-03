@@ -14,6 +14,9 @@ pytestmark = pytest.mark.ui
 SIMILARITY_THRESHOLD = 0.85
 # The test fails when overall accuracy drops below this percentage
 MIN_ACCURACY_PERCENT = 80.0
+# How many queries to send; None runs every row in the source file.
+# Mirrors the SMOKE_QUERY_COUNT pattern in test_chatbot.py.
+ACCURACY_QUERY_COUNT = None
 
 
 @pytest.mark.regression
@@ -24,11 +27,14 @@ def test_chatbot_response_accuracy(user_login):
     chatbot_user.navigate_chatbot()
     logger.info("Navigated to chatbot page")
 
-    # Queries + expected responses come from the same source file;
-    # it stays read-only, results are written to reports/
-    df = pd.read_excel("test_data/Query.xlsx", dtype=str).fillna("")
-    assert "Queries" in df.columns, "Query.xlsx must have a 'Queries' column"
-    assert "Response" in df.columns, "Query.xlsx must have a 'Response' column with expected answers"
+    # Queries + expected answers come from the same source file;
+    # it stays read-only, results (including the live Response) are written to reports/
+    df = pd.read_excel("test_data/queries2.xlsx", dtype=str).fillna("")
+    assert "Queries" in df.columns, "queries2.xlsx must have a 'Queries' column"
+    assert "expected_answer" in df.columns, "queries2.xlsx must have an 'expected_answer' column"
+
+    if ACCURACY_QUERY_COUNT is not None:
+        df = df.head(ACCURACY_QUERY_COUNT)
 
     os.makedirs("reports", exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -37,10 +43,10 @@ def test_chatbot_response_accuracy(user_login):
     results = []
     for idx, row in df.iterrows():
         query = row["Queries"].strip()
-        expected = row["Response"].strip()
+        expected = row["expected_answer"].strip()
 
         if not query or not expected:
-            logger.warning(f"Skipping row {idx + 1}: missing query or expected response")
+            logger.warning(f"Skipping row {idx + 1}: missing query or expected answer")
             continue
 
         logger.info(f"Processing Query #{idx + 1}: {query}")
@@ -59,8 +65,8 @@ def test_chatbot_response_accuracy(user_login):
 
         results.append({
             "Query": query,
-            "Expected_Response": expected,
-            "Actual_Response": actual,
+            "Response": actual,
+            "Expected_Answer": expected,
             "Similarity_%": round(score * 100, 2),
             "Result": "PASS" if matched else "FAIL",
         })
@@ -68,7 +74,7 @@ def test_chatbot_response_accuracy(user_login):
         # Save after every query so a crash still leaves a usable report
         pd.DataFrame(results).to_excel(results_file, index=False)
 
-    assert results, "No usable query/expected-response rows found in Query.xlsx"
+    assert results, "No usable query/expected-answer rows found in queries2.xlsx"
 
     total = len(results)
     matched_count = sum(1 for r in results if r["Result"] == "PASS")
@@ -77,8 +83,8 @@ def test_chatbot_response_accuracy(user_login):
     # Append a summary row so the report carries the final score
     summary = {
         "Query": "OVERALL ACCURACY",
-        "Expected_Response": f"{matched_count}/{total} matched",
-        "Actual_Response": f"threshold {SIMILARITY_THRESHOLD:.0%} per response",
+        "Response": f"threshold {SIMILARITY_THRESHOLD:.0%} per response",
+        "Expected_Answer": f"{matched_count}/{total} matched",
         "Similarity_%": round(accuracy, 2),
         "Result": "PASS" if accuracy >= MIN_ACCURACY_PERCENT else "FAIL",
     }
