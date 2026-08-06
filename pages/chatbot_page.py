@@ -24,7 +24,7 @@ class Chatbot(BasePage):
         dropdown = self.get_locator(self.Language_Dropdown)
         dropdown.click()
 
-        option = self.get_locator(self.Select_Language, language).nth(2)
+        option = self.get_locator(self.Select_Language, language)
         option.click()
     
     def count_responses(self):
