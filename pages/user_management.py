@@ -1,6 +1,10 @@
+from utilities.custom_logger import Log_Maker, mask_secret
 from utilities.read_properties import UserManagamentConfig
 from pages.base_page import BasePage
 from playwright.sync_api import expect
+
+logger = Log_Maker.log_gen(__name__)
+
 
 class UserManagement(BasePage):
 
@@ -29,9 +33,12 @@ class UserManagement(BasePage):
     Confirm_Password=UserManagamentConfig.get_locator("Confirm_Password")
 
     def navigate_to_user_management(self):
+        logger.info("Navigating to the User Management page")
         self.click(self.Navigate_User_Management)
+        logger.info(f"User Management page opened at {self.page.url}")
 
     def create_new_user(self, first_name,middle_name, last_name, email):
+        logger.info(f"Creating user '{first_name} {middle_name} {last_name}' with email '{email}'")
         self.click(self.Create_New_User)
         self.fill(self.First_Name, first_name)
         self.fill(self.Last_Name, last_name)
@@ -40,44 +47,57 @@ class UserManagement(BasePage):
         # Domain is fixed (@aloi.com) and a default USER role is pre-assigned
         # on the current UI, so no dropdown interaction is needed
         self.click(self.Create_User)
-    
+        logger.info(f"Create user form submitted for '{email}'")
+
     def successful_message(self):
         self.verify_text_visible(self.Successful_Message)
+        logger.info("User creation succeeded - confirmation message displayed")
         return True
-    
+
     def already_exist_message(self):
         self.verify_text_visible(self.Already_Exists_Message)
+        logger.info("User already exists - duplicate message displayed")
         return True
-    
+
     def open_new_tab(self, new_url):
+        logger.info(f"Opening a new browser tab at {new_url}")
         new_page = self.page.context.new_page()
         new_page.goto(new_url)
         new_page.wait_for_load_state()
+        logger.debug(f"New tab loaded at {new_page.url}")
         return new_page
-    
+
     def verify_email(self, email):
+        logger.info(f"Opening the Yopmail inbox for '{email}'")
         locator = self.get_locator(self.Email_Box)
         locator.fill(email)
         locator.press("Enter")
         self.page.wait_for_selector(self.Inbox_Frame[1], timeout=20000)
+        logger.debug(f"Inbox frame loaded for '{email}'")
 
     def wait_for_verification_email(self, retries=6):
         """
         Yopmail delivery can lag behind user creation, so reload the inbox
         until the verification email appears.
         """
-        for attempt in range(retries):
+        logger.info(f"Waiting for the verification email (up to {retries} inbox checks)")
+        for attempt in range(1, retries + 1):
             inbox_frame = self.get_frame(self.Inbox_Frame)
             email_item = inbox_frame.get_by_role(self.Email_Item[1], name=self.Email_Item[2]).first
             try:
                 expect(email_item).to_be_visible(timeout=10000)
+                logger.info(f"Verification email arrived on inbox check {attempt}")
                 return
             except AssertionError:
+                logger.warning(f"Inbox check {attempt}/{retries}: no verification email yet, reloading")
                 self.page.reload()
                 self.page.wait_for_selector(self.Inbox_Frame[1], timeout=20000)
+
+        logger.error(f"Verification email never arrived after {retries} inbox checks")
         raise AssertionError(f"Verification email not received after {retries} inbox checks")
 
     def click_redirect_link(self):
+        logger.info("Opening the verification email and following its redirect link")
         inbox_frame = self.get_frame(self.Inbox_Frame)
         inbox_frame.get_by_role(self.Email_Item[1], name=self.Email_Item[2]).click()
 
@@ -87,12 +107,15 @@ class UserManagement(BasePage):
         new_page = popup_info.value
         self.page = new_page
         self.page.wait_for_load_state()
+        logger.info(f"Redirect link opened a new tab at {self.page.url}")
 
     def password_change(self, new_password, confirm_password ):
+        logger.info(f"Setting the new account password ({mask_secret(new_password)})")
         self.verify_text_visible(self.Update_Password_Redirect)
         self.click(self.Update_Password_Redirect)
-        self.fill(self.New_Password, new_password)
-        self.fill(self.Confirm_Password, confirm_password)
+        self.fill(self.New_Password, new_password, mask=True)
+        self.fill(self.Confirm_Password, confirm_password, mask=True)
+        logger.info("New password submitted")
         
 
 
