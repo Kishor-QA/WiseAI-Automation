@@ -1,16 +1,26 @@
 import datetime
 import os
+import platform
+import shutil
 import pytest
 import pandas as pd
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
+from utilities.custom_logger import Log_Maker
 from utilities.read_properties import ReadConfig
+from utilities.screenshot_helper import attach_failure_screenshot
 from pages.login_page import LoginPage
 from pages.home_page import Home
 from pages.read_aloud import ReadAloud
 from pages.stt_nepali_review import STTNepaliReview
 
 load_dotenv()
+
+logger = Log_Maker.log_gen(__name__)
+
+# Lets the failure hook reach the Playwright page of the test that just failed,
+# whichever fixture opened it
+PAGE_STASH_KEY = pytest.StashKey()
 
 
 # -----------------------------
@@ -23,9 +33,10 @@ def pytest_addoption(parser):
     parser.addoption("--url", action="store", default=None)
 
 
-def get_target_url(request):
-    cli_url = request.config.getoption("--url")
+def get_target_url(config):
+    cli_url = config.getoption("--url")
     if cli_url:
+        logger.debug(f"Target URL taken from the --url flag: {cli_url}")
         return cli_url
 
     env_name = os.getenv("ENV", "stage").strip().lower()
@@ -36,9 +47,12 @@ def get_target_url(request):
     }
     env_url = os.getenv(url_key_map.get(env_name, "")) or os.getenv("URL")
     if env_url:
+        logger.debug(f"Target URL taken from the '{env_name}' environment: {env_url}")
         return env_url
 
-    return ReadConfig.get_page_url()
+    fallback_url = ReadConfig.get_page_url()
+    logger.debug(f"Target URL taken from config.ini: {fallback_url}")
+    return fallback_url
 
 
 # -----------------------------
@@ -52,10 +66,19 @@ def browser(request):
     if not headless:
         launch_args.append("--start-maximized")
 
+    logger.info(f"Launching {browser_name} (headless={headless})")
     with sync_playwright() as p:
-        browser_type = getattr(p, browser_name)
+        browser_type = getattr(p, browser_name, None)
+        if browser_type is None:
+            logger.error(f"Unknown browser '{browser_name}'; expected chromium, firefox or webkit")
+            raise ValueError(f"Unsupported browser '{browser_name}'")
+
         browser = browser_type.launch(headless=headless, args=launch_args)
+        logger.info(f"{browser_name} {browser.version} launched")
+
         yield browser
+
+        logger.info(f"Closing {browser_name}")
         browser.close()
 
 
@@ -68,18 +91,34 @@ def context(browser):
     # maximized window is actually full screen (viewport=None only
     # keeps Playwright's 1280x720 default)
     context = browser.new_context(no_viewport=True)
+    logger.debug("Opened a fresh browser context (isolated cookies and storage)")
+
     yield context
+
+    logger.debug("Closing the browser context")
     context.close()
 
 
 @pytest.fixture(scope="function")
 def page(context, request):
-    url = get_target_url(request)
+    url = get_target_url(request.config)
 
     page = context.new_page()
-    page.goto(url)
+    # Stashed so the failure hook can screenshot the browser even when the crash
+    # happened inside a fixture and the test body never ran
+    request.node.stash[PAGE_STASH_KEY] = page
+
+    logger.info(f"Opening page {url}")
+    try:
+        page.goto(url)
+    except Exception as error:
+        logger.error(f"Could not open {url}: {error}")
+        raise
+    logger.info(f"Page loaded: {page.url}")
 
     yield page
+
+    logger.debug(f"Closing page {page.url}")
     page.close()
 
 # -----------------------------
@@ -88,6 +127,7 @@ def page(context, request):
 @pytest.fixture(scope="function")
 def get_test_data():
     df = pd.read_csv("./test_data/login_info.csv")
+    logger.debug(f"Loaded {len(df)} login test data row(s)")
     return df.to_dict(orient="records")
 
 
@@ -95,6 +135,7 @@ def get_test_data():
 def get_valid_credentials(file_path="./test_data/login_info.csv"):
     df = pd.read_csv(file_path)
     valid_row = df[df['case_type'] == 'valid'].iloc[0]
+    logger.debug(f"Using the valid login credentials of '{valid_row['username']}'")
     return valid_row['username'], valid_row['password']
 
 
@@ -104,9 +145,19 @@ def get_user_credentials():
     login_info.csv stays reserved for the login test cases themselves;
     this file holds the accounts used to get into the app, one per role."""
     df = pd.read_csv("./test_data/user_credentials.csv")
+    logger.debug(f"Loaded system credentials for role(s): {sorted(df['role'].unique())}")
 
     def _by_role(role):
-        row = df[df["role"] == role].iloc[0]
+        matches = df[df["role"] == role]
+        if matches.empty:
+            logger.error(
+                f"No '{role}' account in test_data/user_credentials.csv; "
+                f"available roles: {sorted(df['role'].unique())}"
+            )
+            raise KeyError(f"No credentials configured for role '{role}'")
+
+        row = matches.iloc[0]
+        logger.debug(f"Using the '{role}' account '{row['username']}'")
         return row["username"], row["password"]
 
     return _by_role
@@ -122,6 +173,7 @@ def dashboard(page, get_user_credentials):
     Also extracts access token for API usage
     """
     username, password = get_user_credentials("admin")
+    logger.info(f"Setting up the dashboard fixture as admin '{username}'")
 
     login = LoginPage(page)
     login.login(username, password)
@@ -135,12 +187,17 @@ def dashboard(page, get_user_credentials):
     try:
         home.init_token()
     except AssertionError:
+        logger.warning("Token not found by the storage scan; retrying the known localStorage keys")
         token = page.evaluate("() => localStorage.getItem('access_token')")
         if not token:
             token = page.evaluate("() => localStorage.getItem('token')")
         home.token = token
 
+    if home.token is None:
+        logger.error(f"Login as '{username}' succeeded but no auth token could be extracted")
     assert home.token is not None, "Unable to extract auth token from browser storage after login"
+
+    logger.info(f"Dashboard fixture ready for '{username}'")
     return home
 
 
@@ -148,6 +205,7 @@ def dashboard(page, get_user_credentials):
 def read_aloud(dashboard):
     read_aloud_page = ReadAloud(dashboard.page)
     read_aloud_page.token = dashboard.token
+    logger.debug(f"Read Aloud page object ready (base_url={read_aloud_page.base_url})")
     return read_aloud_page
 
 
@@ -155,10 +213,12 @@ def read_aloud(dashboard):
 def stt_review(page, get_user_credentials):
     """The review queue belongs to the reviewer role, not the admin."""
     username, password = get_user_credentials("reviewer")
+    logger.info(f"Setting up the STT review fixture as reviewer '{username}'")
 
     login = LoginPage(page)
     login.login(username, password)
 
+    logger.info(f"STT review fixture ready for '{username}'")
     return STTNepaliReview(page)
 
 
@@ -178,20 +238,92 @@ def auth_token(dashboard):
 # -----------------------------
 # SCREENSHOT ON FAILURE
 # -----------------------------
+def _resolve_page(item):
+    """Find the Playwright page behind a failing test.
+
+    Every UI fixture is built on the `page` fixture, which stashes the page on
+    the node; the funcargs scan is the fallback for a fixture that opens its own
+    page or exposes it as a page-object attribute. API tests return None.
+    """
+    funcargs = getattr(item, "funcargs", None) or {}
+
+    page = item.stash.get(PAGE_STASH_KEY, None) or funcargs.get("page")
+    if page is not None:
+        return page
+
+    for value in funcargs.values():
+        candidate = getattr(value, "page", None)
+        if candidate is not None:
+            return candidate
+
+    return None
+
+
+# -----------------------------
+# RUN + TEST LIFECYCLE LOGGING
+# -----------------------------
+def pytest_sessionstart(session):
+    logger.info("=" * 70)
+    logger.info(
+        f"Test run started | env={os.getenv('ENV', 'stage')} "
+        f"| browser={session.config.getoption('--browser')} "
+        f"| headless={os.getenv('HEADLESS', 'true')} "
+        f"| log_level={os.getenv('LOG_LEVEL', 'INFO')}"
+    )
+
+
+def pytest_collection_finish(session):
+    logger.info(f"Collected {len(session.items)} test(s) to run")
+
+
+def pytest_runtest_logstart(nodeid, location):
+    logger.info(f"--- START {nodeid}")
+
+
+def pytest_runtest_logfinish(nodeid, location):
+    logger.info(f"--- END {nodeid}")
+
+
+def pytest_sessionfinish(session, exitstatus):
+    logger.info(
+        f"Test run finished | collected={session.testscollected} "
+        f"| failed={session.testsfailed} | exit status={exitstatus}"
+    )
+    logger.info("=" * 70)
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
 
-    if report.when == "call" and report.failed:
-        page = item.funcargs.get("page", None)
-        if page:
-            page.screenshot(path=f"screenshots/{item.name}.png")
+    if report.when == "call":
+        if report.passed:
+            logger.info(f"PASSED {item.nodeid} in {report.duration:.2f}s")
+        elif report.skipped:
+            logger.info(f"SKIPPED {item.nodeid}")
+
+    # Setup failures matter as much as call failures: a login or navigation
+    # fixture that breaks never reaches the test body, and the screenshot of the
+    # browser at that moment is the only evidence of what the app was showing.
+    if not report.failed or report.when not in ("setup", "call"):
+        return
+
+    stage = "during setup" if report.when == "setup" else "during execution"
+    logger.error(f"FAILED {item.nodeid} {stage}\n{report.longreprtext}")
+
+    attach_failure_screenshot(_resolve_page(item), item.name, report)
+
 
 # -----------------------------
-# TIMELINED HTML REPORTS
+# TIMELINED HTML REPORTS + ALLURE
 # -----------------------------
 def pytest_configure(config):
+    _timestamp_html_report(config)
+    _prepare_allure_results(config)
+
+
+def _timestamp_html_report(config):
     htmlpath = getattr(config.option, "htmlpath", None)
     if htmlpath and os.path.basename(htmlpath) == "report.html":
         folder = os.path.dirname(htmlpath) or "reports"
@@ -200,10 +332,49 @@ def pytest_configure(config):
         config.option.htmlpath = os.path.join(folder, f"report_{timestamp}.html")
 
 
+def _prepare_allure_results(config):
+    """Start each run from an empty results folder and record the environment
+    that Allure shows on the report overview.
+
+    Only the xdist controller does this - `--clean-alluredir` runs on every
+    worker, so under `-n auto` the workers would wipe each other's results.
+    """
+    allure_dir = getattr(config.option, "allure_report_dir", None)
+    if not allure_dir or config.option.collectonly or hasattr(config, "workerinput"):
+        return
+
+    shutil.rmtree(allure_dir, ignore_errors=True)
+    os.makedirs(allure_dir, exist_ok=True)
+    logger.debug(f"Cleared previous Allure results in {allure_dir}")
+
+    environment = {
+        "Environment": os.getenv("ENV", "stage"),
+        "Base.URL": get_target_url(config),
+        "Browser": config.getoption("--browser"),
+        "Headless": os.getenv("HEADLESS", "true"),
+        "Python": platform.python_version(),
+        "Platform": platform.platform(),
+    }
+
+    with open(os.path.join(allure_dir, "environment.properties"), "w", encoding="utf-8") as env_file:
+        for key, value in environment.items():
+            env_file.write(f"{key}={value}\n")
+
+    logger.debug(f"Wrote Allure environment details: {environment}")
+
+
 def pytest_report_header(config):
+    header = []
+
     htmlpath = getattr(config.option, "htmlpath", None)
     if htmlpath:
-        return f"HTML report will be saved to: {htmlpath}"
+        header.append(f"HTML report will be saved to: {htmlpath}")
+
+    allure_dir = getattr(config.option, "allure_report_dir", None)
+    if allure_dir:
+        header.append(f"Allure results will be saved to: {allure_dir}")
+
+    return header
 
 
 # -----------------------------

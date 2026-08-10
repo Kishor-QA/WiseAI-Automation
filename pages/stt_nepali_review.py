@@ -1,7 +1,10 @@
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
+from utilities.custom_logger import Log_Maker
 from utilities.read_properties import STTNepaliReviewConfig
 from pages.base_page import BasePage
+
+logger = Log_Maker.log_gen(__name__)
 
 
 class STTNepaliReview(BasePage):
@@ -22,13 +25,17 @@ class STTNepaliReview(BasePage):
     def navigate_to_stt_review(self):
         # The link exists in both the sidebar and the dashboard cards,
         # so pick the first match to avoid a strict-mode violation
+        logger.info("Navigating to STT - Nepali Review")
         self.get_locator(self.Navigate_STT_Review).first.click()
+        logger.info(f"STT Nepali Review opened at {self.page.url}")
 
     def open_my_tasks(self):
+        logger.debug("Opening the My Tasks tab")
         self.click(self.My_Tasks)
         self.pause(1)
 
     def open_annotated_tasks(self):
+        logger.debug("Opening the Annotated Tasks tab")
         self.click(self.Annotated_Tasks)
 
     def _enabled_pick_button(self):
@@ -41,8 +48,10 @@ class STTNepaliReview(BasePage):
         once no enabled Pick buttons are left in the list."""
         try:
             self._enabled_pick_button().wait_for(state="visible", timeout=timeout)
+            logger.debug("An enabled Pick button is available")
             return True
         except PlaywrightTimeoutError:
+            logger.info(f"No enabled Pick button appeared within {timeout}ms - queue is exhausted")
             return False
 
     def pick_first_task(self, timeout: int = 30000) -> bool:
@@ -51,16 +60,23 @@ class STTNepaliReview(BasePage):
         try:
             self._enabled_pick_button().click(timeout=timeout)
             self.pause(1)
+            logger.info("Picked the first available task")
             return True
         except PlaywrightTimeoutError:
+            logger.warning(
+                f"Pick button became unavailable within {timeout}ms - "
+                "the list most likely refreshed mid-click"
+            )
             return False
 
     def filter_pending_tasks(self):
         """Filters reset after each approval, so re-apply Pending every pass."""
+        logger.debug("Applying the Pending filter")
         self.click(self.Show_Filters)
         self.pause(1)
         self.click(self.Pending_Filter)
         self.pause(1.5)
+        logger.debug("Pending filter applied")
 
     def has_pending_task(self, timeout: int = 30000) -> bool:
         """Non-failing check so the approval loop can stop cleanly
@@ -69,16 +85,20 @@ class STTNepaliReview(BasePage):
         try:
             first_row = self.get_locator(self.First_Task_Row).first
             first_row.get_by_role("status").first.wait_for(state="visible", timeout=timeout)
+            logger.debug("A pending task row with a status badge is present")
             return True
         except PlaywrightTimeoutError:
+            logger.info(f"No pending task found within {timeout}ms - the queue is empty")
             return False
 
     def is_task_open(self, timeout: int = 30000) -> bool:
         """The task detail is considered open once its Approve button shows."""
         try:
             self.get_locator(self.Approve_Button).wait_for(state="visible", timeout=timeout)
+            logger.debug("Task detail is open (Approve button visible)")
             return True
         except PlaywrightTimeoutError:
+            logger.warning(f"Task detail did not open within {timeout}ms")
             return False
 
     def select_first_task(self, attempts: int = 3):
@@ -92,11 +112,13 @@ class STTNepaliReview(BasePage):
         avoids racing a stale element instead of waiting the full timeout
         on a row that no longer exists."""
         for attempt in range(1, attempts + 1):
+            logger.debug(f"Opening the first pending task (attempt {attempt}/{attempts})")
             first_row = self.get_locator(self.First_Task_Row).first
             status_badge = first_row.get_by_role("status").first
             try:
                 status_badge.wait_for(state="visible", timeout=30000)
             except PlaywrightTimeoutError:
+                logger.warning(f"Attempt {attempt}/{attempts}: task row detached before it was ready")
                 continue
 
             task_name = (first_row.text_content() or "").strip()
@@ -105,20 +127,25 @@ class STTNepaliReview(BasePage):
                 # badge is the reliable click target (matches codegen flow)
                 status_badge.click(timeout=30000)
             except PlaywrightTimeoutError:
+                logger.warning(f"Attempt {attempt}/{attempts}: click on '{task_name}' did not land")
                 continue
 
             if self.is_task_open():
                 self.pause(1.5)
+                logger.info(f"Opened task '{task_name}' on attempt {attempt}")
                 return task_name
 
+        logger.error(f"Task detail never opened after {attempts} attempts")
         return None
 
     def approve_task(self):
+        logger.info("Approving the open task")
         self.click(self.Approve_Button)
         self.pause(1.5)
         # A confirmation dialog re-asks before the approval is submitted
         self.click(self.Approve_Button)
         self.pause(1.5)
+        logger.info("Approval confirmed")
 
     def close_task(self, timeout: int = 30000):
         """Dismiss whichever post-approval dialog the app shows — it is not
@@ -129,13 +156,16 @@ class STTNepaliReview(BasePage):
         try:
             cancel.wait_for(state="visible", timeout=timeout)
             cancel.click()
+            logger.debug("Dismissed the 'Pick Another Task?' prompt with Cancel")
         except PlaywrightTimeoutError:
+            logger.debug("No 'Pick Another Task?' prompt - closing the approval summary instead")
             self.click(self.Close_Task)
         self.pause(1.5)
 
     def go_back_to_task_list(self):
         """The detail view renders inside the active My Tasks tab, so the
         tab link is a no-op there — Go Back is the way to the list."""
+        logger.debug("Going back to the task list")
         self.click(self.Go_Back)
         self.pause(1.5)
 
