@@ -1,0 +1,10 @@
+services:
+  qa-report-host:
+    image: nginx:alpine
+    container_name: qa-report-host
+    restart: unless-stopped
+    ports:
+      - "5020:80"
+    volumes:
+      - ./data:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
