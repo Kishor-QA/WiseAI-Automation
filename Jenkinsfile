@@ -37,7 +37,7 @@ pipeline {
         stage('Clean Previous Reports') {
             steps {
                 sh '''
-                    rm -rf "${QA_REPO_DIR}/reports"
+                    rm -rf "${QA_REPO_DIR}/reports"/report*
                     mkdir -p "${QA_REPO_DIR}/reports"
                 '''
             }
