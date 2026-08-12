@@ -47,6 +47,7 @@ pipeline {
             steps {
                 sh '''
                     cd ${QA_REPO_DIR}
+                    docker compose build
                     docker compose run --rm automation 
                 '''
             }
