@@ -11,7 +11,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     ENV=stage \
     DEV_URL=https://dev.wiseai.wiseyak.com/login \
     STAGE_URL=https://stage.wiseai.wiseyak.com/login \
-    PROD_URL=https://prod.wiseai.wiseyak.com/login
+    PROD_URL=https://wiseai.wiseyak.com/login
 
 # Install system dependencies required by Playwright browsers
 RUN apt-get update && apt-get install -y --no-install-recommends \
