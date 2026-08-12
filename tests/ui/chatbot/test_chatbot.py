@@ -31,7 +31,7 @@ def test_chatbot_responds(user_login):
     os.makedirs("reports", exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     results_file = f"reports/chatbot_smoke_{timestamp}.xlsx"
-    chatbot_user.select_language("ENGLISH")
+    #chatbot_user.select_language("ENGLISH")
     results = []
     for idx, row in df.iterrows():
         query = row["Queries"]
