@@ -33,6 +33,16 @@ def pytest_addoption(parser):
     parser.addoption("--url", action="store", default=None)
 
 
+# Headless Chromium falls back to a 800x600 window, which is narrow enough for
+# the app's responsive sidebar to collapse and hide its navigation links, so
+# headless runs get an explicit desktop viewport instead of the window size.
+HEADLESS_VIEWPORT = {"width": 1920, "height": 1080}
+
+
+def is_headless():
+    return os.getenv("HEADLESS", "true").lower() not in ("0", "false", "no")
+
+
 def get_target_url(config):
     cli_url = config.getoption("--url")
     if cli_url:
@@ -61,7 +71,7 @@ def get_target_url(config):
 @pytest.fixture(scope="session")
 def browser(request):
     browser_name = request.config.getoption("--browser")
-    headless = os.getenv("HEADLESS", "true").lower() not in ("0", "false", "no")
+    headless = is_headless()
     launch_args = ["--disable-gpu", "--disable-dev-shm-usage", "--no-sandbox"]
     if not headless:
         launch_args.append("--start-maximized")
@@ -87,11 +97,21 @@ def browser(request):
 # -----------------------------
 @pytest.fixture(scope="function")
 def context(browser):
-    # no_viewport=True makes the page use the real window size, so a
-    # maximized window is actually full screen (viewport=None only
-    # keeps Playwright's 1280x720 default)
-    context = browser.new_context(no_viewport=True)
-    logger.debug("Opened a fresh browser context (isolated cookies and storage)")
+    # Headed: no_viewport=True makes the page use the real window size, so a
+    # maximized window is actually full screen (viewport=None only keeps
+    # Playwright's 1280x720 default).
+    # Headless: there is no maximized window to inherit - Chromium would hand
+    # over its 800x600 default and collapse the app's responsive sidebar - so
+    # a desktop viewport is set explicitly.
+    if is_headless():
+        context = browser.new_context(viewport=HEADLESS_VIEWPORT)
+        logger.debug(
+            f"Opened a fresh browser context at {HEADLESS_VIEWPORT['width']}x"
+            f"{HEADLESS_VIEWPORT['height']} (isolated cookies and storage)"
+        )
+    else:
+        context = browser.new_context(no_viewport=True)
+        logger.debug("Opened a fresh browser context at window size (isolated cookies and storage)")
 
     yield context
 
