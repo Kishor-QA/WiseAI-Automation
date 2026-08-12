@@ -3,6 +3,7 @@ import os
 import pytest
 import pandas as pd
 from utilities.custom_logger import Log_Maker
+from utilities.env_config import get_row_limit
 from utilities.text_utils import similarity_ratio
 
 logger = Log_Maker.log_gen()
@@ -15,8 +16,8 @@ SIMILARITY_THRESHOLD = 0.85
 # The test fails when overall accuracy drops below this percentage
 MIN_ACCURACY_PERCENT = 80.0
 # How many queries to send; None runs every row in the source file.
-# Mirrors the SMOKE_QUERY_COUNT pattern in test_chatbot.py.
-ACCURACY_QUERY_COUNT = None
+# Override per run with CHATBOT_ACCURACY_QUERY_COUNT.
+ACCURACY_QUERY_COUNT = get_row_limit("CHATBOT_ACCURACY_QUERY_COUNT")
 
 
 @pytest.mark.regression
