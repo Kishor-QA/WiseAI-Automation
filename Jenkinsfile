@@ -66,7 +66,7 @@ pipeline {
                     cp -f reports/*.html "${WORKSPACE}/reports/" 2>/dev/null || true
                 fi
             '''
-            archiveArtifacts artifact: 'reports/*.html', allowEmptyArchive: true, onlyIfSuccessful: false
+            archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true, onlyIfSuccessful: false
         }
 
         success {
