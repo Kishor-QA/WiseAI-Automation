@@ -3,14 +3,16 @@ import os
 import pytest
 import pandas as pd
 from utilities.custom_logger import Log_Maker
+from utilities.env_config import get_row_limit
 
 logger = Log_Maker.log_gen()
 
 pytestmark = pytest.mark.ui
 
 # Just enough queries to confirm the chatbot is responding at all;
-# full expected-vs-actual coverage lives in test_chatbot_accuracy.py
-SMOKE_QUERY_COUNT = 20
+# full expected-vs-actual coverage lives in test_chatbot_accuracy.py.
+# Override per run with CHATBOT_SMOKE_QUERY_COUNT ('all' sends every row).
+SMOKE_QUERY_COUNT = get_row_limit("CHATBOT_SMOKE_QUERY_COUNT", default=20)
 
 
 @pytest.mark.smoke
@@ -22,7 +24,9 @@ def test_chatbot_responds(user_login):
     logger.info("Navigated to chatbot page")
 
     df = pd.read_excel("test_data/queries2.xlsx", dtype=str).fillna("")
-    df = df.head(SMOKE_QUERY_COUNT)
+    if SMOKE_QUERY_COUNT is not None:
+        df = df.head(SMOKE_QUERY_COUNT)
+    logger.info(f"Sending {len(df)} smoke query/queries")
 
     os.makedirs("reports", exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
