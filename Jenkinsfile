@@ -67,10 +67,7 @@ pipeline {
                 fi
             '''
             archiveArtifacts artifacts: 'reports/*.html', allowEmptyArchive: true, onlyIfSuccessful: false
-        }
 
-        success {
-            echo 'QA automation passed'
             script {
                 def latest = sh(
                     script: "ls -t ${WORKSPACE}/reports/*.html 2>/dev/null | head -n1 || true",
@@ -94,6 +91,10 @@ pipeline {
                     echo 'No HTML report found to publish.'
                 }
             }
+        }
+
+        success {
+            echo 'QA automation passed'
         }
 
         failure {
