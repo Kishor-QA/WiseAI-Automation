@@ -10,7 +10,7 @@ pytestmark = pytest.mark.ui
 
 # Just enough queries to confirm the chatbot is responding at all;
 # full expected-vs-actual coverage lives in test_chatbot_accuracy.py
-SMOKE_QUERY_COUNT = 5
+SMOKE_QUERY_COUNT = 20
 
 
 @pytest.mark.smoke

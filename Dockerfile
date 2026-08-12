@@ -8,6 +8,7 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HEADLESS=true \
+    TZ=Asia/Kathmandu \
     ENV=stage \
     DEV_URL=https://dev.wiseai.wiseyak.com/login \
     STAGE_URL=https://stage.wiseai.wiseyak.com/login \
@@ -33,7 +34,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxtst6 \
     fonts-liberation \
     wget \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
+
+# Use Nepal Time for pytest-html's generated timestamp and test logs.
+RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
+    && echo ${TZ} > /etc/timezone
 
 # Install Python dependencies
 COPY requirements.txt ./
