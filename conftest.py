@@ -7,6 +7,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 from utilities.custom_logger import Log_Maker
+from utilities.env_config import get_environment
 from utilities.read_properties import ReadConfig
 from utilities.screenshot_helper import attach_failure_screenshot
 from pages.login_page import LoginPage
@@ -49,7 +50,7 @@ def get_target_url(config):
         logger.debug(f"Target URL taken from the --url flag: {cli_url}")
         return cli_url
 
-    env_name = os.getenv("ENV", "stage").strip().lower()
+    env_name = get_environment()
     url_key_map = {
         "dev": "DEV_URL",
         "stage": "STAGE_URL",

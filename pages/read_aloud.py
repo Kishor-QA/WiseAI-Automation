@@ -1,4 +1,5 @@
 from utilities.custom_logger import Log_Maker
+from utilities.env_config import get_api_base_url
 from utilities.read_properties import ReadAloudCofing
 from pages.base_page import BasePage
 from playwright.sync_api import expect
@@ -8,7 +9,6 @@ logger = Log_Maker.log_gen(__name__)
 
 class ReadAloud(BasePage):
     ReadAloud_URL = ReadAloudCofing.get_page_url()
-    Base_URL = ReadAloudCofing.get_page_url("Base_URL")
     Navigate_to_ReadAloud = ReadAloudCofing.get_locator("Navigate_Read_Aloud")
     Language_Dropdown = ReadAloudCofing.get_locator("Language_Dropdown")
     Select_Language = ReadAloudCofing.get_locator("Select_Language")
@@ -19,7 +19,10 @@ class ReadAloud(BasePage):
     Uploaded_Status = ReadAloudCofing.get_locator("Uploaded_Status")
 
     def __init__(self, page, base_url=None):
-        super().__init__(page, base_url=base_url or self.Base_URL)
+        # Resolved per instance rather than as a class attribute: the backend
+        # has to match the ENV the UI is running against, and .env is only
+        # loaded after this module is imported.
+        super().__init__(page, base_url=base_url or get_api_base_url())
 
     def navigate_to_readalout(self):
         logger.info("Navigating to the Read Aloud page")
