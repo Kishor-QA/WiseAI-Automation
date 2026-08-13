@@ -112,6 +112,23 @@ class ReadAloudCofing:
         return _read_page_url(ReadAloudCofing.SECTION, key)
 
     @staticmethod
+    def get_api_base_url(env_name):
+        """Backend URL configured for `env_name` (dev, stage, prod).
+
+        Falls back to the plain Base_URL when an environment has no entry of
+        its own, so an unrecognised ENV still resolves to something.
+        """
+        key = f"{env_name}_Base_URL"
+        if config.has_option(ReadAloudCofing.SECTION, key):
+            return _read_page_url(ReadAloudCofing.SECTION, key)
+
+        logger.warning(
+            f"No '{key}' in section [{ReadAloudCofing.SECTION}] of {CONFIG_PATH}; "
+            f"falling back to Base_URL"
+        )
+        return _read_page_url(ReadAloudCofing.SECTION, "Base_URL")
+
+    @staticmethod
     def get_locator(name):
         return _parse_locator(ReadAloudCofing.SECTION, name)
 

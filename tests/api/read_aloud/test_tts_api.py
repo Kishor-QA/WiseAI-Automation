@@ -1,13 +1,13 @@
 import pytest
 import requests
-from utilities.read_properties import ReadAloudCofing
+from utilities.env_config import get_api_base_url
 from utilities.custom_logger import Log_Maker
 
 logger = Log_Maker.log_gen(__name__)
 
 pytestmark = [pytest.mark.api, pytest.mark.regression]
 
-BASE_URL = ReadAloudCofing.get_page_url("Base_URL").rstrip("/")
+BASE_URL = get_api_base_url().rstrip("/")
 
 
 class TestTTSApiHealth:
