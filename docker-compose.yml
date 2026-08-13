@@ -10,6 +10,6 @@ services:
     volumes:
       - ./reports:/app/reports
     working_dir: /app
-    command: pytest tests/ui/chatbot/test_chatbot.py
+    command: pytest -m smoke
     tty: true
     stdin_open: true
