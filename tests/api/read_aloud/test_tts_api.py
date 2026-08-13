@@ -3,9 +3,9 @@ import requests
 from utilities.read_properties import ReadAloudCofing
 from utilities.custom_logger import Log_Maker
 
-logger = Log_Maker.log_gen()
+logger = Log_Maker.log_gen(__name__)
 
-pytestmark = pytest.mark.api
+pytestmark = [pytest.mark.api, pytest.mark.regression]
 
 BASE_URL = ReadAloudCofing.get_page_url("Base_URL").rstrip("/")
 

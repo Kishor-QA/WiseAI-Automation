@@ -2,16 +2,15 @@ import pytest
 from pytest_html import extras as extras_api
 from utilities.custom_logger import Log_Maker
 
-logger = Log_Maker.log_gen()
+logger = Log_Maker.log_gen(__name__)
 
-pytestmark = pytest.mark.ui
+pytestmark = [pytest.mark.ui, pytest.mark.regression]
 
 # Safety cap so the loop can never spin forever if the queue keeps refilling
 MAX_APPROVALS = 1000
 
 
 class TestSTTNepaliReview:
-    @pytest.mark.smoke
     def test_approve_all_pending_tasks(self, stt_review, extras, record_property):
         logger.info("Starting STT Nepali review approval loop for all pending tasks")
 

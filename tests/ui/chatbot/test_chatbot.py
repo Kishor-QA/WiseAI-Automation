@@ -5,9 +5,9 @@ import pandas as pd
 from utilities.custom_logger import Log_Maker
 from utilities.env_config import get_row_limit
 
-logger = Log_Maker.log_gen()
+logger = Log_Maker.log_gen(__name__)
 
-pytestmark = pytest.mark.ui
+pytestmark = [pytest.mark.ui, pytest.mark.regression]
 
 # Just enough queries to confirm the chatbot is responding at all;
 # full expected-vs-actual coverage lives in test_chatbot_accuracy.py.
@@ -31,7 +31,7 @@ def test_chatbot_responds(user_login):
     os.makedirs("reports", exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     results_file = f"reports/chatbot_smoke_{timestamp}.xlsx"
-    chatbot_user.select_language("ENGLISH")
+    #chatbot_user.select_language("ENGLISH")
     results = []
     for idx, row in df.iterrows():
         query = row["Queries"]

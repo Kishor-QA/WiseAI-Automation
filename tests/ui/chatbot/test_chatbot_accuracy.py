@@ -6,9 +6,9 @@ from utilities.custom_logger import Log_Maker
 from utilities.env_config import get_row_limit
 from utilities.text_utils import similarity_ratio
 
-logger = Log_Maker.log_gen()
+logger = Log_Maker.log_gen(__name__)
 
-pytestmark = pytest.mark.ui
+pytestmark = [pytest.mark.ui, pytest.mark.regression]
 
 # A response counts as correct when it is at least this similar (0.0-1.0)
 # to the expected response after whitespace/case normalization
@@ -20,7 +20,6 @@ MIN_ACCURACY_PERCENT = 80.0
 ACCURACY_QUERY_COUNT = get_row_limit("CHATBOT_ACCURACY_QUERY_COUNT")
 
 
-@pytest.mark.regression
 def test_chatbot_response_accuracy(user_login):
     logger.info("Starting chatbot expected-vs-actual accuracy test")
     chatbot_user = user_login
