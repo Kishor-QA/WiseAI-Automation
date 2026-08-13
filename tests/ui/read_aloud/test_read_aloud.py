@@ -2,9 +2,9 @@ import pytest
 from pages.read_aloud import ReadAloud
 from utilities.custom_logger import Log_Maker
 
-logger = Log_Maker.log_gen()
+logger = Log_Maker.log_gen(__name__)
 
-pytestmark = pytest.mark.ui
+pytestmark = [pytest.mark.ui, pytest.mark.regression]
 
 
 class TestReadAloud:

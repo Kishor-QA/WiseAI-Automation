@@ -2,16 +2,15 @@ import pytest
 from pytest_html import extras as extras_api
 from utilities.custom_logger import Log_Maker
 
-logger = Log_Maker.log_gen()
+logger = Log_Maker.log_gen(__name__)
 
-pytestmark = pytest.mark.ui
+pytestmark = [pytest.mark.ui, pytest.mark.regression]
 
 # Safety cap so the loop can never spin forever if the list keeps refilling
 MAX_PICKS = 1000
 
 
 class TestPickAnnotatedTasks:
-    @pytest.mark.smoke
     def test_pick_all_available_tasks(self, stt_review, extras, record_property):
         logger.info("Starting pick-all loop for the Annotated Tasks list")
 

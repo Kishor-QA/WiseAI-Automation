@@ -4,9 +4,9 @@ import pytest
 from utilities.custom_logger import Log_Maker
 
 
-logger = Log_Maker.log_gen()
+logger = Log_Maker.log_gen(__name__)
 
-pytestmark = pytest.mark.ui
+pytestmark = [pytest.mark.ui, pytest.mark.regression]
 
 @pytest.fixture(scope="function")
 def user_login(dashboard):
@@ -31,7 +31,6 @@ def test_create_user(user_login):
     logger.info("User created successfully")
 
 
-@pytest.mark.regression
 @pytest.mark.skip(reason="Stage creates users under the fixed @aloi.com domain; "
                          "Yopmail inbox verification is impossible until a public email domain option returns")
 def test_new_user_email_verification(user_login):
