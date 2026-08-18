@@ -4,6 +4,7 @@ import pytest
 from utilities.custom_logger import Log_Maker
 
 
+
 logger = Log_Maker.log_gen(__name__)
 
 pytestmark = [pytest.mark.ui, pytest.mark.regression]
@@ -31,10 +32,11 @@ def test_create_user(user_login):
     logger.info("User created successfully")
 
 
-@pytest.mark.skip(reason="Stage creates users under the fixed @aloi.com domain; "
-                         "Yopmail inbox verification is impossible until a public email domain option returns")
+#@pytest.mark.skip(reason="Stage creates users under the fixed @aloi.com domain; "
+#                        "Yopmail inbox verification is impossible until a public email domain option returns")
 def test_new_user_email_verification(user_login):
     user_m = user_login
+    admin_page = user_m.page
     email_prefix = unique_email_prefix()
     email = f"{email_prefix}@yopmail.com"
 
@@ -54,3 +56,9 @@ def test_new_user_email_verification(user_login):
     logger.info("Clicked redirect link")
     user_m.password_change("Password1@", "Password1@")
     logger.info("Completed password change flow")
+
+    user_m.new_user_login(email, "Password1@")
+    logger.info("New user logged in")
+
+        
+   

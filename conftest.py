@@ -41,7 +41,7 @@ HEADLESS_VIEWPORT = {"width": 1920, "height": 1080}
 
 
 def is_headless():
-    return os.getenv("HEADLESS", "true").lower() not in ("0", "false", "no")
+    return os.getenv("HEADLESS", "false").lower() not in ("0", "false", "no")
 
 
 def get_target_url(config):

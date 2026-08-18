@@ -2,6 +2,8 @@ from utilities.custom_logger import Log_Maker, mask_secret
 from utilities.read_properties import UserManagamentConfig
 from pages.base_page import BasePage
 from playwright.sync_api import expect
+from pages.login_page import LoginPage
+
 
 logger = Log_Maker.log_gen(__name__)
 
@@ -31,6 +33,10 @@ class UserManagement(BasePage):
     Update_Password_Redirect=UserManagamentConfig.get_locator("Update_Password_Redirect")
     New_Password=UserManagamentConfig.get_locator("New_Password")
     Confirm_Password=UserManagamentConfig.get_locator("Confirm_Password")
+    Reset_Password=UserManagamentConfig.get_locator("Reset_Password")
+    Success_Toast=UserManagamentConfig.get_locator("Success_Toast")
+    Status=UserManagamentConfig.get_locator("Status")
+    User_Dashboard=UserManagamentConfig.get_locator("User_Dashboard")
 
     def navigate_to_user_management(self):
         logger.info("Navigating to the User Management page")
@@ -44,6 +50,8 @@ class UserManagement(BasePage):
         self.fill(self.Last_Name, last_name)
         self.fill(self.Middle_Name, middle_name)
         self.fill(self.Email, email)
+        self.click(self.Domain_Dropdown)
+        self.click(self.Select_Domain)
         # Domain is fixed (@aloi.com) and a default USER role is pre-assigned
         # on the current UI, so no dropdown interaction is needed
         self.click(self.Create_User)
@@ -96,6 +104,18 @@ class UserManagement(BasePage):
         logger.error(f"Verification email never arrived after {retries} inbox checks")
         raise AssertionError(f"Verification email not received after {retries} inbox checks")
 
+
+    def password_change(self, new_password, confirm_password ):
+        logger.info(f"Setting the new account password ({mask_secret(new_password)})")
+       # self.verify_text_visible(self.Update_Password_Redirect)
+        #self.click(self.Update_Password_Redirect)
+        self.fill(self.New_Password, new_password, mask=True)
+        self.fill(self.Confirm_Password, confirm_password, mask=True)
+        self.click(self.Reset_Password)
+        logger.info("New password submitted")
+        self.verify_text_visible(self.Success_Toast)
+        logger.info("Password change Successful")
+        
     def click_redirect_link(self):
         logger.info("Opening the verification email and following its redirect link")
         inbox_frame = self.get_frame(self.Inbox_Frame)
@@ -105,17 +125,29 @@ class UserManagement(BasePage):
         with self.page.expect_popup() as popup_info:
             mail_frame.get_by_role(self.Redirect_Link[1], name=self.Redirect_Link[2]).click()
         new_page = popup_info.value
-        self.page = new_page
+        new_page.wait_for_load_state()
+
+        reset_url = new_page.url
+        logger.info(f"Redirect link resolved to {reset_url}")
+        new_page.close()
+
+        # Open the reset link in a brand-new, unauthenticated context so the
+        # app can't find an existing session and bounce to the dashboard.
+        fresh_context = self.page.context.browser.new_context()#create a brand new,separate profile to solve the problem of redirecting to dashboard
+        self.page = fresh_context.new_page() #with no cookies, no session, nothing carried over from the previous page
+        self.page.goto(reset_url)
         self.page.wait_for_load_state()
-        logger.info(f"Redirect link opened a new tab at {self.page.url}")
+        logger.info(f"Reset link reopened in a fresh context at {self.page.url}")
 
-    def password_change(self, new_password, confirm_password ):
-        logger.info(f"Setting the new account password ({mask_secret(new_password)})")
-        self.verify_text_visible(self.Update_Password_Redirect)
-        self.click(self.Update_Password_Redirect)
-        self.fill(self.New_Password, new_password, mask=True)
-        self.fill(self.Confirm_Password, confirm_password, mask=True)
-        logger.info("New password submitted")
+        #context (BrowserContext) is an isolated environment inside a running browser that has its own:cookies ,localStorage / sessionStorage,cache,login/session state
         
+    def new_user_login(self, email, password):
+        logger.info(f"Logging in as newly created user '{email}'")
+        login = LoginPage(self.page)
+        login.login(email, password)
 
+        
+        expect(self.get_locator(self.User_Dashboard)).to_be_visible(timeout=10000)
+        logger.info(f"Dashboard confirmed loaded for '{email}'")
 
+   
